@@ -215,15 +215,22 @@ export default function ClinicalForm() {
       <label className="text-sm font-bold text-slate-700 tracking-wide">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      <select 
-        required={required}
-        value={getValue(section, field, subField)} 
-        onChange={(e) => handleNestedChange(section, field, e.target.value, subField)} 
-        className="w-full p-3 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm appearance-none"
-      >
-        <option value="" disabled className="text-slate-400">Select {label}</option>
-        {options.map(opt => <option key={opt} value={opt} className="text-slate-900">{opt}</option>)}
-      </select>
+      <div className="relative">
+        <select 
+          required={required}
+          value={getValue(section, field, subField)} 
+          onChange={(e) => handleNestedChange(section, field, e.target.value, subField)} 
+          className="w-full p-3 pr-10 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm appearance-none cursor-pointer"
+        >
+          <option value="" disabled className="text-slate-400">Select {label}</option>
+          {options.map(opt => <option key={opt} value={opt} className="text-slate-900">{opt}</option>)}
+        </select>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
     </div>
   );
 

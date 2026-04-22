@@ -54,7 +54,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-md border border-blue-500 p-6">
+          <div className="bg-linear-to-br from-blue-600 to-blue-700 rounded-xl shadow-md border border-blue-500 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm font-medium">Total Records</p>
@@ -64,7 +64,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl shadow-md border border-green-500 p-6">
+          <div className="bg-linear-to-br from-green-600 to-green-700 rounded-xl shadow-md border border-green-500 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">This Month</p>
@@ -74,7 +74,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl shadow-md border border-orange-500 p-6">
+          <div className="bg-linear-to-br from-orange-600 to-orange-700 rounded-xl shadow-md border border-orange-500 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-orange-100 text-sm font-medium">Pending Review</p>

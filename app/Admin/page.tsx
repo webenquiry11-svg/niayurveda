@@ -111,69 +111,69 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-8 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2 sm:p-4 md:p-8 font-sans">
       {/* Header */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-extrabold text-white mb-1">Clinical Records Dashboard</h1>
-            <p className="text-blue-200 text-sm">Manage and view all patient clinical records</p>
+      <div className="max-w-7xl mx-auto mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+          <div className="w-full sm:w-auto">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1">Clinical Records Dashboard</h1>
+            <p className="text-blue-200 text-xs sm:text-sm">Manage and view all patient clinical records</p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={handleDownloadExcel} className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition-colors shadow-lg flex items-center gap-2">📥 Download Excel</button>
-            <button onClick={onLogout} className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-colors shadow-lg">Logout</button>
+          <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+            <button onClick={handleDownloadExcel} className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm transition-colors shadow-lg flex items-center justify-center gap-1 sm:gap-2">📥 <span className="hidden sm:inline">Download Excel</span><span className="sm:hidden">Excel</span></button>
+            <button onClick={onLogout} className="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm transition-colors shadow-lg">Logout</button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-linear-to-br from-blue-600 to-blue-700 rounded-xl shadow-md border border-blue-500 p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-linear-to-br from-blue-600 to-blue-700 rounded-xl shadow-md border border-blue-500 p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Total Records</p>
-                <p className="text-3xl font-bold text-white mt-2">{stats.total}</p>
+                <p className="text-blue-100 text-xs sm:text-sm font-medium">Total Records</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white mt-1 sm:mt-2">{stats.total}</p>
               </div>
-              <div className="bg-blue-500 p-4 rounded-lg"><span className="text-2xl">📋</span></div>
+              <div className="bg-blue-500 p-2 sm:p-4 rounded-lg"><span className="text-xl sm:text-2xl">📋</span></div>
             </div>
           </div>
 
-          <div className="bg-linear-to-br from-green-600 to-green-700 rounded-xl shadow-md border border-green-500 p-6">
+          <div className="bg-linear-to-br from-green-600 to-green-700 rounded-xl shadow-md border border-green-500 p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">This Month</p>
-                <p className="text-3xl font-bold text-white mt-2">{stats.thisMonth}</p>
+                <p className="text-green-100 text-xs sm:text-sm font-medium">This Month</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white mt-1 sm:mt-2">{stats.thisMonth}</p>
               </div>
-              <div className="bg-green-500 p-4 rounded-lg"><span className="text-2xl">📅</span></div>
+              <div className="bg-green-500 p-2 sm:p-4 rounded-lg"><span className="text-xl sm:text-2xl">📅</span></div>
             </div>
           </div>
 
-          <div className="bg-linear-to-br from-orange-600 to-orange-700 rounded-xl shadow-md border border-orange-500 p-6">
+          <div className="bg-linear-to-br from-orange-600 to-orange-700 rounded-xl shadow-md border border-orange-500 p-3 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-100 text-sm font-medium">Pending Review</p>
-                <p className="text-3xl font-bold text-white mt-2">{records.filter(r => !r.diagnosis).length}</p>
+                <p className="text-orange-100 text-xs sm:text-sm font-medium">Pending Review</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white mt-1 sm:mt-2">{records.filter(r => !r.diagnosis).length}</p>
               </div>
-              <div className="bg-orange-500 p-4 rounded-lg"><span className="text-2xl">⏳</span></div>
+              <div className="bg-orange-500 p-2 sm:p-4 rounded-lg"><span className="text-xl sm:text-2xl">⏳</span></div>
             </div>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="bg-slate-800 rounded-xl shadow-md border border-slate-700 p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <span className="text-slate-400 text-xl">🔍</span>
+        <div className="bg-slate-800 rounded-xl shadow-md border border-slate-700 p-3 sm:p-4 mb-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-slate-400 text-lg sm:text-xl">🔍</span>
             <input
               type="text"
-              placeholder="Search by patient name, phone, or OPD number..."
+              placeholder="Search patient..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full p-3 border border-slate-600 bg-slate-700 text-white placeholder:text-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
+              className="w-full p-2 sm:p-3 border border-slate-600 bg-slate-700 text-white placeholder:text-slate-400 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-colors text-sm sm:text-base"
             />
           </div>
         </div>
       </div>
 
-      {/* Records Table */}
+      {/* Records Table/Cards */}
       <div className="max-w-7xl mx-auto">
         {loading ? (
           <div className="bg-slate-800 rounded-xl shadow-lg p-16 text-center">
@@ -185,43 +185,44 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         ) : (
           <div className="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                    <th className="p-5 text-left font-bold">Patient Name</th>
-                    <th className="p-5 text-left font-bold">Age / Sex</th>
-                    <th className="p-5 text-left font-bold">Contact</th>
-                    <th className="p-5 text-left font-bold">OPD / IPD</th>
-                    <th className="p-5 text-left font-bold">Chief Complaint</th>
-                    <th className="p-5 text-left font-bold">Submitted</th>
-                    <th className="p-5 text-left font-bold">Actions</th>
+                    <th className="p-3 sm:p-4 lg:p-5 text-left font-bold text-xs sm:text-sm">Patient Name</th>
+                    <th className="p-3 sm:p-4 lg:p-5 text-left font-bold text-xs sm:text-sm">Age / Sex</th>
+                    <th className="p-3 sm:p-4 lg:p-5 text-left font-bold text-xs sm:text-sm">Contact</th>
+                    <th className="p-3 sm:p-4 lg:p-5 text-left font-bold text-xs sm:text-sm">OPD / IPD</th>
+                    <th className="p-3 sm:p-4 lg:p-5 text-left font-bold text-xs sm:text-sm">Chief Complaint</th>
+                    <th className="p-3 sm:p-4 lg:p-5 text-left font-bold text-xs sm:text-sm">Submitted</th>
+                    <th className="p-3 sm:p-4 lg:p-5 text-left font-bold text-xs sm:text-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700">
                   {filteredRecords.map((record, i) => (
                     <React.Fragment key={i}>
                       <tr className="hover:bg-slate-700 transition-colors cursor-pointer border-b">
-                        <td className="p-5">
-                          <div className="font-bold text-white">{record.basicInfo?.name}</div>
+                        <td className="p-3 sm:p-4 lg:p-5">
+                          <div className="font-bold text-white text-xs sm:text-sm">{record.basicInfo?.name}</div>
                           <div className="text-xs text-slate-400 mt-1">{record.basicInfo?.fatherHusbandName ? `S/O: ${record.basicInfo.fatherHusbandName}` : ''}</div>
                         </td>
-                        <td className="p-5">
-                          <span className="bg-blue-600 text-blue-100 px-3 py-1 rounded-full text-sm font-medium">{record.basicInfo?.age} y, {record.basicInfo?.sex}</span>
+                        <td className="p-3 sm:p-4 lg:p-5">
+                          <span className="bg-blue-600 text-blue-100 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">{record.basicInfo?.age} y, {record.basicInfo?.sex}</span>
                         </td>
-                        <td className="p-5 text-slate-300">{record.basicInfo?.phoneNo || 'N/A'}</td>
-                        <td className="p-5">
-                          <div className="text-sm">
+                        <td className="p-3 sm:p-4 lg:p-5 text-slate-300 text-xs sm:text-sm">{record.basicInfo?.phoneNo || 'N/A'}</td>
+                        <td className="p-3 sm:p-4 lg:p-5">
+                          <div className="text-xs sm:text-sm">
                             {record.basicInfo?.opdNo && <div className="text-white font-medium">OPD: {record.basicInfo.opdNo}</div>}
                             {record.basicInfo?.ipdNo && <div className="text-white font-medium">IPD: {record.basicInfo.ipdNo}</div>}
                           </div>
                         </td>
-                        <td className="p-5 text-slate-300 max-w-xs truncate">{record.history?.chiefComplaints || 'N/A'}</td>
-                        <td className="p-5 text-slate-300 text-sm">{new Date(record.createdAt).toLocaleDateString()}</td>
-                        <td className="p-5">
+                        <td className="p-3 sm:p-4 lg:p-5 text-slate-300 max-w-xs truncate text-xs sm:text-sm">{record.history?.chiefComplaints || 'N/A'}</td>
+                        <td className="p-3 sm:p-4 lg:p-5 text-slate-300 text-xs sm:text-sm">{new Date(record.createdAt).toLocaleDateString()}</td>
+                        <td className="p-3 sm:p-4 lg:p-5">
                           <button
                             onClick={() => setExpandedId(expandedId === record._id ? null : record._id)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors"
                           >
                             {expandedId === record._id ? 'Hide' : 'View'}
                           </button>
@@ -230,13 +231,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
                       {/* Expanded Row */}
                       {expandedId === record._id && (
-                        <tr className="bg-slate-750 border-b">
-                          <td colSpan={7} className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <tr className="bg-slate-750 border-b hidden md:table-row">
+                          <td colSpan={7} className="p-4 lg:p-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                               {/* Basic Info Section */}
-                              <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-                                <h3 className="font-bold text-white mb-3 text-lg">👤 Basic Information</h3>
-                                <div className="space-y-2 text-sm">
+                              <div className="bg-slate-700 rounded-lg p-3 lg:p-4 border border-slate-600">
+                                <h3 className="font-bold text-white mb-3 text-base lg:text-lg">👤 Basic Information</h3>
+                                <div className="space-y-2 text-xs lg:text-sm">
                                   <div><span className="font-medium text-blue-300">Name:</span> <span className="text-slate-200">{record.basicInfo?.name}</span></div>
                                   <div><span className="font-medium text-blue-300">Age:</span> <span className="text-slate-200">{record.basicInfo?.age}</span></div>
                                   <div><span className="font-medium text-blue-300">Sex:</span> <span className="text-slate-200">{record.basicInfo?.sex}</span></div>

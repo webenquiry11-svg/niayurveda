@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [records, setRecords] = useState<any[]>([]);
@@ -40,6 +41,75 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }).length,
   };
 
+  const handleDownloadExcel = () => {
+    if (records.length === 0) {
+      toast.error('No records to download');
+      return;
+    }
+
+    const loadingToast = toast.loading('Preparing download...');
+
+    try {
+      // Prepare data for export
+      const exportData = records.map((record) => ({
+        'Patient Name': record.basicInfo?.name || 'N/A',
+        'Age': record.basicInfo?.age || 'N/A',
+        'Sex': record.basicInfo?.sex || 'N/A',
+        'Father/Husband Name': record.basicInfo?.fatherHusbandName || 'N/A',
+        'Phone': record.basicInfo?.phoneNo || 'N/A',
+        'Address': record.basicInfo?.address || 'N/A',
+        'OPD No': record.basicInfo?.opdNo || 'N/A',
+        'IPD No': record.basicInfo?.ipdNo || 'N/A',
+        'Religion': record.basicInfo?.religion || 'N/A',
+        'Occupation': record.basicInfo?.occupation || 'N/A',
+        'Chief Complaints': record.history?.chiefComplaints || 'N/A',
+        'Present Illness Onset': record.history?.presentIllness?.onset || 'N/A',
+        'Duration': record.history?.presentIllness?.duration || 'N/A',
+        'Treatment History': record.history?.treatmentHistory || 'N/A',
+        'Surgical History': record.history?.surgicalHistory || 'N/A',
+        'Weight (kg)': record.physicalExamination?.weight || 'N/A',
+        'Height (cm)': record.physicalExamination?.height || 'N/A',
+        'BP': record.physicalExamination?.vitals?.bp || 'N/A',
+        'Pulse Rate': record.physicalExamination?.vitals?.pulseRate || 'N/A',
+        'Respiratory Rate': record.physicalExamination?.vitals?.respiratoryRate || 'N/A',
+        'Temperature': record.physicalExamination?.vitals?.temp || 'N/A',
+        'Diet': record.personalHistory?.diet || 'N/A',
+        'Sleep': record.personalHistory?.sleep || 'N/A',
+        'Exercise': record.personalHistory?.exercise || 'N/A',
+        'Addiction': Array.isArray(record.personalHistory?.addiction) ? record.personalHistory.addiction.join(', ') : 'None',
+        'Prakriti (Body)': record.dashavidhaParikshana?.prakritiSharirik || 'N/A',
+        'Prakriti (Mind)': record.dashavidhaParikshana?.prakritiMansika || 'N/A',
+        'Vikriti Dosha': record.dashavidhaParikshana?.vikritiDosha || 'N/A',
+        'Tongue Color': record.jivhaPariksha?.color || 'N/A',
+        'Tongue Coating': record.jivhaPariksha?.coating || 'N/A',
+        'Tongue Texture': record.jivhaPariksha?.texture || 'N/A',
+        'Diagnosis': record.diagnosis || 'Pending',
+        'Date Submitted': new Date(record.createdAt).toLocaleDateString(),
+        'Time Submitted': new Date(record.createdAt).toLocaleTimeString(),
+      }));
+
+      // Create a new workbook
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Clinical Records');
+
+      // Set column widths
+      const columnWidths = Object.keys(exportData[0] || {}).map(() => ({ wch: 20 }));
+      worksheet['!cols'] = columnWidths;
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const filename = `Clinical_Records_${timestamp}.xlsx`;
+
+      // Trigger download
+      XLSX.writeFile(workbook, filename);
+      toast.success('Records downloaded successfully!', { id: loadingToast });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download records', { id: loadingToast });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 sm:p-8 font-sans">
       {/* Header */}
@@ -49,7 +119,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <h1 className="text-4xl font-extrabold text-white mb-1">Clinical Records Dashboard</h1>
             <p className="text-blue-200 text-sm">Manage and view all patient clinical records</p>
           </div>
-          <button onClick={onLogout} className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-colors shadow-lg">Logout</button>
+          <div className="flex gap-3">
+            <button onClick={handleDownloadExcel} className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition-colors shadow-lg flex items-center gap-2">📥 Download Excel</button>
+            <button onClick={onLogout} className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-colors shadow-lg">Logout</button>
+          </div>
         </div>
 
         {/* Stats Cards */}

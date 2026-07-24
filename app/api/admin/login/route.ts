@@ -13,11 +13,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Username and password are required' }, { status: 400 });
   }
 
-  const admin = await Admin.findOne({ username });
-  if (!admin || !admin.isSetupComplete) {
-    return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
+  // Explicitly select the password field as it's hidden by default in the schema
+  const admin = await Admin.findOne({ username }).select('+password');
+
+  // Check if admin exists, if the password field was successfully retrieved,
+  // and if the admin setup is complete. An incomplete setup should not allow login.
+  if (!admin || !admin.password || !admin.isSetupComplete) {
+    return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
   }
 
+  // Now it's safe to compare the password, as admin.password is guaranteed to be a string
   const isValidPassword = await bcrypt.compare(password, admin.password);
   if (!isValidPassword) {
     return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });

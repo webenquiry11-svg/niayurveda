@@ -7,6 +7,12 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
 export async function POST(req: NextRequest) {
+  // Runtime check for critical environment variables
+  if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is not defined.');
+    return NextResponse.json({ message: 'Server configuration error: Missing JWT secret.' }, { status: 500 });
+  }
+
   await dbConnect();
   const body = await req.json();
   const { action } = body;

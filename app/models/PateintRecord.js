@@ -45,7 +45,7 @@ const PatientRecordSchema = new mongoose.Schema({
     kostha: String,
     appetite: String,
     bowelHabit: String,
-    bladderHabit: String,
+    bladderHabit: [String],
     sleep: String,
     sleepQuality: String,
     daytimeSleepDuration: String,
@@ -61,7 +61,6 @@ const PatientRecordSchema = new mongoose.Schema({
       cycleDuration: Number,
       associatedSymptoms: String
     },
-    ongoingMedications: String,
     familyHistory: String,
   },
   physicalExamination: {
@@ -117,11 +116,10 @@ const PatientRecordSchema = new mongoose.Schema({
     moisture: String,
     texture: String,
     movement: String,
-    associatedSymptoms: String,
+    associatedSymptoms: [String],
     imageUrl: String
   },
   diagnosis: { type: String, trim: true },
-  diagnosisImageUrl: String,
 }, { timestamps: true });
 
 export default mongoose.models.PatientRecord || mongoose.model('PatientRecord', PatientRecordSchema);

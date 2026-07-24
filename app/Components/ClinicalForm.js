@@ -1,23 +1,24 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, Fragment } from 'react';
 import { toast } from 'react-hot-toast';
 
 const initialFormState = {
   basicInfo: { researchCaseNo: '', opdNo: '', name: '', ipdNo: '', fatherHusbandName: '', bedNo: '', age: '', sex: '', religion: '', maritalStatus: '', occupation: '', socioEconomicStatus: '', education: '', address: '', phoneNo: '', investigatorName: '', patientConsent: false },
   history: { chiefComplaints: '', presentIllness: { onset: '', duration: '', aggravationAt: '', degradationAt: '' }, treatmentHistory: '', pastMedications: '', recentMedications: '', surgicalHistory: '' },
-  personalHistory: { diet: '', dominantRasa: '', dietHabit: '', foodQuantity: '', birthPlace: '', presentHabitat: '', occupationNature: '', agni: '', kostha: '', appetite: '', bowelHabit: '', bladderHabit: '', sleep: '', sleepQuality: '', daytimeSleepDuration: '', previousNightSleep: '', exercise: '', addiction: '', sharira: '', menstrualHistory: { menarcheAge: '', menopauseAge: '', flowDuration: '', flowNature: '', cycleDuration: '', associatedSymptoms: '' }, ongoingMedications: '', familyHistory: '' },
+  personalHistory: { diet: '', dominantRasa: '', dietHabit: '', foodQuantity: '', birthPlace: '', presentHabitat: '', occupationNature: '', agni: '', kostha: '', appetite: '', bowelHabit: '', bladderHabit: [], sleep: '', sleepQuality: '', daytimeSleepDuration: '', previousNightSleep: '', exercise: '', addiction: [], sharira: '', menstrualHistory: { menarcheAge: '', menopauseAge: '', flowDuration: '', flowNature: '', cycleDuration: '', associatedSymptoms: '' }, familyHistory: '' },
   physicalExamination: { generalAppearance: '', built: '', weight: '', height: '', pallor: '', icterus: '', cyanosis: '', clubbing: '', lymphadenopathy: '', oedema: '', oedemaType: '', oedemaLocation: '', thyroidGland: '', vitals: { bp: '', pulseRate: '', respiratoryRate: '', temp: '' } },
   dashavidhaParikshana: { prakritiSharirik: '', prakritiMansika: '', vikritiDosha: '', saara: '', samahanana: '', pramana: '', satva: '', satmya: '', abhyavaharanaShakti: '', jaranaShakti: '', vyayamaShakti: '' },
   ashtavidhaPariksha: { nadi: '', mala: { matra: '', varna: '', gandha: '', pravritti: '', prakriti: '' }, jihwa: '', shabda: '', sparsha: '', drika: '', akriti: '', mutra: { matra: '', gandha: '', varna: '', pravritt: '' } },
-  jivhaPariksha: { color: '', coating: '', coatingTypeColor: '', odor: '', shape: '', moisture: '', texture: '', movement: '', associatedSymptoms: '', imageUrl: '' },
+  jivhaPariksha: { color: '', coating: '', coatingTypeColor: '', odor: '', shape: '', moisture: '', texture: '', movement: '', associatedSymptoms: [], imageUrl: '' },
   diagnosis: '',
-  diagnosisImageUrl: ''
 };
 
 export default function ClinicalForm() {
   const [formData, setFormData] = useState(initialFormState);
   const [activeTab, setActiveTab] = useState('basicInfo');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [otherAddictionText, setOtherAddictionText] = useState('');
+  const [otherSymptomsText, setOtherSymptomsText] = useState('');
   const formRef = useRef(null);
 
   const tabs = [
@@ -100,6 +101,23 @@ export default function ClinicalForm() {
     });
   };
 
+  const handleMultiSelectChange = (section, field, value) => {
+    setFormData(prev => {
+      const currentValues = prev[section]?.[field] || [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter(item => item !== value)
+        : [...currentValues, value];
+      
+      return {
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [field]: newValues,
+        },
+      };
+    });
+  };
+
   // Cloudinary Direct Upload Handler
   const handleImageUpload = async (e, section, field, subField = null) => {
     const file = e.target.files[0];
@@ -153,14 +171,16 @@ export default function ClinicalForm() {
 
     setIsSubmitting(true);
     
-    // Prepare payload: Format addiction field to an array as expected by the Schema
+    // Prepare payload: Combine checkbox values with "other" text fields
     const payload = {
       ...formData,
       personalHistory: {
         ...formData.personalHistory,
-        addiction: formData.personalHistory.addiction 
-          ? formData.personalHistory.addiction.split(',').map(s => s.trim()).filter(Boolean) 
-          : []
+        addiction: [...(formData.personalHistory.addiction || []), otherAddictionText].filter(Boolean)
+      },
+      jivhaPariksha: {
+        ...formData.jivhaPariksha,
+        associatedSymptoms: [...(formData.jivhaPariksha.associatedSymptoms || []), otherSymptomsText].filter(Boolean)
       }
     };
 
@@ -176,6 +196,8 @@ export default function ClinicalForm() {
       if (response.ok) {
         toast.success('Record Saved Successfully!');
         setFormData(initialFormState);
+        setOtherAddictionText('');
+        setOtherSymptomsText('');
         setActiveTab('basicInfo');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
@@ -374,9 +396,19 @@ export default function ClinicalForm() {
                   {renderSelect('Occupation Nature', 'personalHistory', 'occupationNature', ['Active', 'Sedentary'])}
                   {renderSelect('Agni', 'personalHistory', 'agni', ['Sama', 'Vishama', 'Tikshna', 'Manda'])}
                   {renderSelect('Kostha', 'personalHistory', 'kostha', ['Mridu', 'Madhyam', 'Kroora'])}
-                  {renderSelect('Appetite', 'personalHistory', 'appetite', ['Good', 'Poor'])}
-                  {renderSelect('Bowel Habit', 'personalHistory', 'bowelHabit', ['Regular', 'Irregular'])}
-                  {renderSelect('Bladder Habit', 'personalHistory', 'bladderHabit', ['Normal', 'Increased Frequency', 'Decreased Frequency', 'Uncontrolled urination', 'Burning micturition'])}
+                  {renderSelect('Appetite', 'personalHistory', 'appetite', ['Good', 'Increased', 'Decreased', 'Loss of appetite'])}
+                  {renderSelect('Bowel Habit', 'personalHistory', 'bowelHabit', ['Regular', 'Constipated', 'Increased Frequency'])}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-bold text-slate-700 tracking-wide">Bladder Habit</label>
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
+                      {['Normal', 'Increased Frequency', 'Decreased Frequency', 'Uncontrolled urination', 'Burning micturition'].map(option => (
+                        <div key={option} className="flex items-center">
+                          <input type="checkbox" id={`bladder-${option}`} value={option} checked={(formData.personalHistory.bladderHabit || []).includes(option)} onChange={() => handleMultiSelectChange('personalHistory', 'bladderHabit', option)} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                          <label htmlFor={`bladder-${option}`} className="ml-2 text-sm text-slate-800 cursor-pointer select-none">{option}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   {renderSelect('Sleep', 'personalHistory', 'sleep', ['Samyak', 'Atinidra', 'Alpanidra'])}
                   {renderSelect('Sleep Quality', 'personalHistory', 'sleepQuality', ['Undisturbed', 'Disturbed'])}
                   {renderInput('Daytime Sleep (mins)', 'personalHistory', 'daytimeSleepDuration', 'number')}
@@ -384,14 +416,22 @@ export default function ClinicalForm() {
                   {renderSelect('Exercise', 'personalHistory', 'exercise', ['Regular', 'Irregular', 'Occasional'])}
                   {renderSelect('Sharira', 'personalHistory', 'sharira', ['Krisha', 'Madhyama', 'Sthoola'])}
                   
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-slate-700 tracking-wide">Addictions</label>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-bold text-slate-700 tracking-wide">Addiction</label>
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-y-2 gap-x-4">
+                      {['Tea', 'Coffee', 'Tobacco', 'Alcohol', 'Smoking', 'No Addiction'].map(option => (
+                        <div key={option} className="flex items-center">
+                          <input type="checkbox" id={`addiction-${option}`} value={option} checked={(formData.personalHistory.addiction || []).includes(option)} onChange={() => handleMultiSelectChange('personalHistory', 'addiction', option)} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                          <label htmlFor={`addiction-${option}`} className="ml-2 text-sm text-slate-800 cursor-pointer select-none">{option}</label>
+                        </div>
+                      ))}
+                    </div>
                     <input 
                       type="text" 
-                      value={formData.personalHistory.addiction} 
-                      onChange={(e) => handleNestedChange('personalHistory', 'addiction', e.target.value)}
-                      className="w-full p-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
-                      placeholder="e.g. Tea, Coffee, Tobacco, Alcohol, Smoking, None"
+                      value={otherAddictionText} 
+                      onChange={(e) => setOtherAddictionText(e.target.value)}
+                      className="mt-2 w-full p-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
+                      placeholder="Others (specify)"
                     />
                   </div>
                 </div>
@@ -411,8 +451,7 @@ export default function ClinicalForm() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {renderTextarea('Ongoing Medications/Supplements', 'personalHistory', 'ongoingMedications')}
+                <div className="grid grid-cols-1 gap-8">
                   {renderTextarea('Family History', 'personalHistory', 'familyHistory')}
                 </div>
               </div>
@@ -518,16 +557,26 @@ export default function ClinicalForm() {
                     {renderSelect('Tongue Moisture', 'jivhaPariksha', 'moisture', ['Normal', 'Dry', 'Very dry', 'Excessively moist'])}
                     {renderSelect('Tongue Texture', 'jivhaPariksha', 'texture', ['Smooth', 'Rough', 'Cracked', 'Ulcerated'])}
                     {renderSelect('Tongue Movement', 'jivhaPariksha', 'movement', ['Present', 'Absent'])}
-                    {renderSelect('Prasna: Assoc. Symptoms', 'jivhaPariksha', 'associatedSymptoms', ['Burning sensation', 'Pain', 'Dryness', 'Loss of taste', 'Bad taste', 'Others'])}
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-bold text-slate-700 tracking-wide">Prasna: Any Associated Symptoms</label>
+                      <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-y-2 gap-x-4">
+                        {['Burning sensation', 'Pain', 'Dryness', 'Loss of taste', 'Bad taste'].map(option => (
+                          <div key={option} className="flex items-center">
+                            <input type="checkbox" id={`symptom-${option}`} value={option} checked={(formData.jivhaPariksha.associatedSymptoms || []).includes(option)} onChange={() => handleMultiSelectChange('jivhaPariksha', 'associatedSymptoms', option)} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                            <label htmlFor={`symptom-${option}`} className="ml-2 text-sm text-slate-800 cursor-pointer select-none">{option}</label>
+                          </div>
+                        ))}
+                      </div>
+                      <input type="text" value={otherSymptomsText} onChange={(e) => setOtherSymptomsText(e.target.value)} className="mt-2 w-full p-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm" placeholder="Others (specify)" />
+                    </div>
                   </div>
                   {renderImageUpload('Photographic Presentation (Upload Image)', 'jivhaPariksha', 'imageUrl')}
                 </div>
                 
                 {/* Final Diagnosis */}
                 <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-                   <h3 className="text-lg font-bold text-slate-900 mb-4">Final Diagnosis</h3>
-                   {renderTextarea('Clinical Diagnosis', null, 'diagnosis', 'Enter detailed diagnosis and clinical remarks...')}
-                   <div className="mt-6">{renderImageUpload('Attach Diagnosis Image / Report', null, 'diagnosisImageUrl')}</div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">Final Diagnosis</h3>
+                  {renderTextarea('Clinical Diagnosis', null, 'diagnosis', 'Enter detailed diagnosis and clinical remarks...')}
                 </div>
               </div>
             )}

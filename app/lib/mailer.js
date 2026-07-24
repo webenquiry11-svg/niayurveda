@@ -1,10 +1,17 @@
 import nodemailer from 'nodemailer';
 
 export const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // Use SSL
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_APP_PASSWORD, 
+  },
+  // Force IPv4 to resolve a common issue on hosting platforms like Render.
+  // The server fails to connect to smtp.gmail.com over IPv6.
+  dns: {
+    family: 4,
   },
   // Add these for better debugging on the server
   logger: true,

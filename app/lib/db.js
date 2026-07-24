@@ -13,13 +13,19 @@ if (!cached) {
 }
 
 async function dbConnect() {
-  if (cached.conn) return cached.conn;
-
   if (!cached.promise) {
+    console.log('Database: Creating new connection promise.');
     cached.promise = mongoose.connect(MONGODB_URI);
   }
-  cached.conn = await cached.promise;
-  return cached.conn;
+  try {
+    cached.conn = await cached.promise;
+    console.log('Database: Connection established successfully.');
+    return cached.conn;
+  } catch (e) {
+    console.error('Database: Connection failed!', e);
+    cached.promise = null; // Reset promise to allow retry on next request
+    throw e; // Re-throw error to fail the request
+  }
 }
 
 export default dbConnect;

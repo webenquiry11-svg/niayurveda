@@ -9,12 +9,20 @@ export const transporter = nodemailer.createTransport({
 });
 
 export const sendMail = async (to, subject, text, html) => {
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to,
-    subject,
-    text,
-    html,
-  };
-  return transporter.sendMail(mailOptions);
+  console.log(`Mailer: Attempting to send email to "${to}" with subject "${subject}"`);
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to,
+      subject,
+      text,
+      html,
+    };
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Mailer: Email sent successfully! Message ID: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error('Mailer: Failed to send email.', error);
+    throw error; // Re-throw the error so the calling function knows it failed
+  }
 };

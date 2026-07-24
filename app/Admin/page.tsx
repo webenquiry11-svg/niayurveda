@@ -115,6 +115,7 @@ interface PatientRecord {
   jivhaPariksha?: {
     color?: string;
     coating?: string;
+    // Property 'diagnosisImageUrl' does not exist on type 'PatientRecord'.
     coatingTypeColor?: string;
     odor?: string;
     shape?: string;
@@ -124,6 +125,7 @@ interface PatientRecord {
     associatedSymptoms?: string[];
     imageUrl?: string;
   };
+  diagnosisImageUrl?: string;
   diagnosis?: string;
   createdAt: string;
   updatedAt: string;
@@ -419,20 +421,22 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
       // --- Data Formatting (Dates) ---
       // Loop through all cells in the date columns and apply the 'dd-mmm-yyyy' format
-      allReportFields.forEach((field, colIndex) => {
-        if (field.type === 'date') {
-          const range = XLSX.utils.decode_range(ws['!ref']);
-          // Iterate through rows starting from the first data row (tableStartRow + 1)
-          for (let R = tableStartRow + 1; R <= range.e.r; ++R) {
-            const cell_address = { c: colIndex, r: R };
-            const cell_ref = XLSX.utils.encode_cell(cell_address);
-            if (ws[cell_ref] && ws[cell_ref].v instanceof Date) {
-              ws[cell_ref].t = 'd'; // Set cell type to Date
-              ws[cell_ref].z = 'dd-mmm-yyyy'; // Set the number format
+      if (ws['!ref']) { // This guard clause resolves the TypeScript error.
+        const range = XLSX.utils.decode_range(ws['!ref']); // Decode range once for efficiency.
+        allReportFields.forEach((field, colIndex) => {
+          if (field.type === 'date') {
+            // Iterate through rows starting from the first data row (tableStartRow + 1)
+            for (let R = tableStartRow + 1; R <= range.e.r; ++R) {
+              const cell_address = { c: colIndex, r: R };
+              const cell_ref = XLSX.utils.encode_cell(cell_address);
+              if (ws[cell_ref] && ws[cell_ref].v instanceof Date) {
+                ws[cell_ref].t = 'd'; // Set cell type to Date
+                ws[cell_ref].z = 'dd-mmm-yyyy'; // Set the number format
+              }
             }
           }
-        }
-      });
+        });
+      }
 
       // --- 7. FEATURES (Freeze Panes & AutoFilter) ---
       // Freeze the table header row (which is `tableStartRow` + 1 in 1-indexed Excel)

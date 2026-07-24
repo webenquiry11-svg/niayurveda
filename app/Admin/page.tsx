@@ -129,9 +129,7 @@ interface PatientRecord {
   updatedAt: string;
   imageUrls?: string[];
 }
-function AdminDashboard({ onLogout, records: initialRecords, onOpenGallery }: { onLogout: () => void, records: PatientRecord[], onOpenGallery: (record: PatientRecord) => void }) {
-  const [records, setRecords] = useState<PatientRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+function AdminDashboard({ onLogout, records, onOpenGallery, loading }: { onLogout: () => void, records: PatientRecord[], onOpenGallery: (record: PatientRecord) => void, loading: boolean }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   
@@ -326,7 +324,7 @@ function AdminDashboard({ onLogout, records: initialRecords, onOpenGallery }: { 
             const hasImages = Array.isArray(record.imageUrls) && record.imageUrls.length > 0;
             if (hasImages) {
               // This creates a clickable hyperlink in the Excel cell.
-              const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
               const galleryUrl = `${appUrl}/Admin?viewPatient=${record._id}`;
               row[field.header] = { t: 's', v: 'View Images', l: { Target: galleryUrl, Tooltip: `View images for ${record.basicInfo?.name || 'patient'}` } };
             } else {
@@ -737,11 +735,13 @@ function AdminPageContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [recordsLoading, setRecordsLoading] = useState(true);
+  // State lifted up to the parent component to be shared
   const [records, setRecords] = useState<PatientRecord[]>([]);
   const [galleryRecord, setGalleryRecord] = useState<PatientRecord | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
-
+  
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -749,30 +749,9 @@ function AdminPageContent() {
     const checkStatus = async () => {
       try {
         const res = await fetch('/api/admin/check');
-        const authData = await res.json();
-        setHasAdmin(authData.hasAdmin);
-        if (authData.isAuthenticated) {
-          setIsAuthenticated(true);
-          // Fetch records only if authenticated
-          const recordsRes = await fetch('/api/Records');
-          const recordsData = await recordsRes.json();
-          if (recordsData.success) {
-            setRecords(recordsData.data);
-            
-            // After records are loaded, check if we need to auto-open a gallery
-            const viewPatientId = searchParams.get('viewPatient');
-            if (viewPatientId) {
-              const recordToView = recordsData.data.find((r: PatientRecord) => r._id === viewPatientId);
-              if (recordToView) {
-                setGalleryRecord(recordToView);
-                // Clean the URL to prevent re-opening on refresh
-                router.replace('/Admin');
-              } else {
-                toast.error('Patient record for gallery not found.');
-              }
-            }
-          }
-        }
+        const data = await res.json();
+        setHasAdmin(data.hasAdmin);
+        setIsAuthenticated(data.isAuthenticated);
       } catch (error) {
         console.error("Failed to check admin status.");
       } finally {
@@ -780,8 +759,41 @@ function AdminPageContent() {
       }
     };
     checkStatus();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]); // Re-run when auth status changes
+  }, []);
+
+  // This consolidated effect handles fetching records upon authentication
+  // and then checks for the URL parameter to auto-open the gallery.
+  useEffect(() => {
+    if (isAuthenticated) {
+      const fetchRecords = async () => {
+        setRecordsLoading(true);
+        try {
+          const recordsRes = await fetch('/api/Records');
+          const recordsData = await recordsRes.json();
+          if (recordsData.success) {
+            const fetchedRecords = recordsData.data;
+            setRecords(fetchedRecords);
+
+            // Now that records are loaded, check for the URL parameter.
+            const viewPatientId = searchParams.get('viewPatient');
+            if (viewPatientId) {
+              const recordToView = fetchedRecords.find((r: PatientRecord) => r._id === viewPatientId);
+              if (recordToView) {
+                setGalleryRecord(recordToView);
+                router.replace('/Admin'); // Clean the URL to prevent re-opening on refresh
+              } else {
+                toast.error('Patient record for gallery not found.');
+              }
+            }
+          }
+        } catch (error) {
+          toast.error("Failed to fetch records.");
+        }
+        setRecordsLoading(false);
+      };
+      fetchRecords();
+    }
+  }, [isAuthenticated, searchParams, router]); // Dependencies are correct and minimal
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -896,7 +908,7 @@ function AdminPageContent() {
   if (isAuthenticated) {
     return (
       <>
-        <AdminDashboard onLogout={handleLogout} records={records} onOpenGallery={setGalleryRecord} />
+        <AdminDashboard onLogout={handleLogout} records={records} onOpenGallery={setGalleryRecord} loading={recordsLoading} />
 
         {/* Image Gallery Modal */}
         {galleryRecord && (

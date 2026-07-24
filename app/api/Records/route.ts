@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       jwt.verify(token, process.env.JWT_SECRET);
     } catch (jwtError) {
       console.error("JWT Verification Error:", jwtError);
+      // Return a 401 for any JWT error (e.g., expired, invalid signature)
       return NextResponse.json({ success: false, message: 'Unauthorized: Invalid or expired token.' }, { status: 401 });
     }
     

@@ -700,9 +700,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                               <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
                                 <h3 className="font-bold text-white mb-3 text-lg">🔬 Diagnosis</h3>
                                 <p className="text-sm text-slate-200">{record.diagnosis || 'Pending'}</p>
-                                {record.diagnosisImageUrl && (
-                                  <img src={record.diagnosisImageUrl} alt="Diagnosis" className="mt-3 max-w-xs rounded-lg border border-slate-300" />
-                                )}
                               </div>
 
                               {/* Physical Examination */}
@@ -741,9 +738,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                                     <div><span className="font-medium text-blue-300">Texture:</span> <span className="text-slate-200">{record.jivhaPariksha.texture || 'N/A'}</span></div>
                                     <div><span className="font-medium text-blue-300">Moisture:</span> <span className="text-slate-200">{record.jivhaPariksha.moisture || 'N/A'}</span></div>
                                   </div>
-                                  {record.jivhaPariksha.imageUrl && (
-                                    <img src={record.jivhaPariksha.imageUrl} alt="Tongue" className="mt-3 max-w-xs rounded-lg border border-slate-300" />
-                                  )}
                                 </div>
                               )}
 

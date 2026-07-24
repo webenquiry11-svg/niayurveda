@@ -129,33 +129,12 @@ interface PatientRecord {
   updatedAt: string;
   imageUrls?: string[];
 }
-
-function AdminDashboard({ onLogout }: { onLogout: () => void }) {
+function AdminDashboard({ onLogout, records: initialRecords, onOpenGallery }: { onLogout: () => void, records: PatientRecord[], onOpenGallery: (record: PatientRecord) => void }) {
   const [records, setRecords] = useState<PatientRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [galleryRecord, setGalleryRecord] = useState<PatientRecord | null>(null);
-  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
-  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   
-  // This component is rendered when isAuthenticated is true, so we can safely assume it.
-  // The parent AdminPage handles the auth check.
-  useEffect(() => {
-    const fetchRecords = async () => {
-      try {
-        const res = await fetch('/api/Records');
-        const data = await res.json();
-        if (data.success) setRecords(data.data);
-      } catch (error) {
-        toast.error('Failed to fetch records');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRecords();
-  }, []);
-
   const filteredRecords = records.filter(record =>
     record.basicInfo?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     record.basicInfo?.phoneNo?.includes(searchTerm) ||
@@ -513,41 +492,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
   };
 
-  const handleDownloadAll = async () => {
-    if (!galleryRecord?._id || !galleryRecord.imageUrls || galleryRecord.imageUrls.length === 0) return;
-    setIsDownloadingZip(true);
-    const loadingToast = toast.loading('Preparing ZIP file for download...');
-
-    try {
-      // Re-use the existing API route with a special action parameter
-      const res = await fetch(`/api/Records?action=download_zip&id=${galleryRecord._id}`);
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const patientName = galleryRecord.basicInfo?.name?.replace(/\s+/g, '_') || 'Patient';
-        a.download = `${patientName}_Images.zip`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        toast.success('Download started!', { id: loadingToast });
-      } else {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to create ZIP file.');
-      }
-    } catch (error: any) {
-      toast.error(error.message, { id: loadingToast });
-    } finally {
-      setIsDownloadingZip(false);
-    }
-  };
-
   return (
-    <>
-      {/* Main Dashboard */}
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2 sm:p-4 md:p-8 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2 sm:p-4 md:p-8 font-sans">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
@@ -663,7 +609,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                             {expandedId === record._id ? 'Hide' : 'View'}
                           </button>
                           {record.imageUrls && record.imageUrls.length > 0 && (
-                            <button onClick={() => setGalleryRecord(record)} className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors ml-2">
+                            <button onClick={() => onOpenGallery(record)} className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors ml-2">
                               Images
                             </button>
                           )}
@@ -776,67 +722,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         )}
       </div>
-      </div>
-
-      {/* Image Gallery Modal */}
-      {galleryRecord && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
-            {/* Gallery Header */}
-            <div className="flex-shrink-0 bg-white p-4 sm:p-6 rounded-t-2xl border-b border-slate-200">
-              <div className="flex flex-wrap justify-between items-center gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800">{galleryRecord.basicInfo?.name}</h2>
-                  <p className="text-xs text-slate-500 mt-1">Patient ID: {galleryRecord._id}</p>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">{galleryRecord.imageUrls?.length || 0}</div>
-                  <div className="text-xs text-slate-500 uppercase font-semibold">Total Images</div>
-                </div>
-                <div className="flex items-center gap-4">
-                  {galleryRecord.imageUrls && galleryRecord.imageUrls.length > 0 && (
-                    <button onClick={handleDownloadAll} disabled={isDownloadingZip} className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 transition disabled:opacity-50">
-                      {isDownloadingZip ? 'Zipping...' : 'Download All'}
-                    </button>
-                  )}
-                  <button onClick={() => setGalleryRecord(null)} className="bg-slate-200 text-slate-700 font-bold px-5 py-2.5 rounded-lg hover:bg-slate-300 transition">
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Gallery Body */}
-            <div className="flex-grow p-4 sm:p-6 overflow-y-auto">
-              {galleryRecord.imageUrls && galleryRecord.imageUrls.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                  {galleryRecord.imageUrls.map((url, index) => (
-                    <div key={index} className="group relative aspect-square bg-slate-200 rounded-lg overflow-hidden shadow-sm border border-slate-300">
-                      <img src={url} alt={`Patient Image ${index + 1}`} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <button onClick={() => setFullscreenImage(url)} className="bg-white/80 p-2 rounded-full hover:bg-white" title="View Fullscreen"><span className="text-xl">👁️</span></button>
-                        <a href={url} download target="_blank" rel="noopener noreferrer" className="bg-white/80 p-2 rounded-full hover:bg-white" title="Download Image"><span className="text-xl">📥</span></a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-xl font-semibold text-slate-500">No Images Uploaded</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Fullscreen Image Viewer */}
-      {fullscreenImage && (
-        <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 cursor-pointer" onClick={() => setFullscreenImage(null)}>
-          <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full object-contain" />
-        </div>
-      )}
-    </>
+    </div>
   );
 }
 
@@ -851,6 +737,10 @@ function AdminPageContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [records, setRecords] = useState<PatientRecord[]>([]);
+  const [galleryRecord, setGalleryRecord] = useState<PatientRecord | null>(null);
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -859,9 +749,30 @@ function AdminPageContent() {
     const checkStatus = async () => {
       try {
         const res = await fetch('/api/admin/check');
-        const data = await res.json();
-        setHasAdmin(data.hasAdmin);
-        if (data.isAuthenticated) setIsAuthenticated(true);
+        const authData = await res.json();
+        setHasAdmin(authData.hasAdmin);
+        if (authData.isAuthenticated) {
+          setIsAuthenticated(true);
+          // Fetch records only if authenticated
+          const recordsRes = await fetch('/api/Records');
+          const recordsData = await recordsRes.json();
+          if (recordsData.success) {
+            setRecords(recordsData.data);
+            
+            // After records are loaded, check if we need to auto-open a gallery
+            const viewPatientId = searchParams.get('viewPatient');
+            if (viewPatientId) {
+              const recordToView = recordsData.data.find((r: PatientRecord) => r._id === viewPatientId);
+              if (recordToView) {
+                setGalleryRecord(recordToView);
+                // Clean the URL to prevent re-opening on refresh
+                router.replace('/Admin');
+              } else {
+                toast.error('Patient record for gallery not found.');
+              }
+            }
+          }
+        }
       } catch (error) {
         console.error("Failed to check admin status.");
       } finally {
@@ -869,7 +780,8 @@ function AdminPageContent() {
       }
     };
     checkStatus();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]); // Re-run when auth status changes
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -949,9 +861,104 @@ function AdminPageContent() {
     toast.success('Logged out successfully');
   };
 
+  const handleDownloadAll = async () => {
+    if (!galleryRecord?._id || !galleryRecord.imageUrls || galleryRecord.imageUrls.length === 0) return;
+    setIsDownloadingZip(true);
+    const loadingToast = toast.loading('Preparing ZIP file for download...');
+
+    try {
+      const res = await fetch(`/api/Records?action=download_zip&id=${galleryRecord._id}`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const patientName = galleryRecord.basicInfo?.name?.replace(/\s+/g, '_') || 'Patient';
+        a.download = `${patientName}_Images.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('Download started!', { id: loadingToast });
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create ZIP file.');
+      }
+    } catch (error: any) {
+      toast.error(error.message, { id: loadingToast });
+    } finally {
+      setIsDownloadingZip(false);
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 font-bold text-slate-500">Loading...</div>;
 
-  if (isAuthenticated) return <AdminDashboard onLogout={handleLogout} />;
+  if (isAuthenticated) {
+    return (
+      <>
+        <AdminDashboard onLogout={handleLogout} records={records} onOpenGallery={setGalleryRecord} />
+
+        {/* Image Gallery Modal */}
+        {galleryRecord && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+              {/* Gallery Header */}
+              <div className="flex-shrink-0 bg-white p-4 sm:p-6 rounded-t-2xl border-b border-slate-200">
+                <div className="flex flex-wrap justify-between items-center gap-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-800">{galleryRecord.basicInfo?.name}</h2>
+                    <p className="text-xs text-slate-500 mt-1">Patient ID: {galleryRecord._id}</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-blue-600">{galleryRecord.imageUrls?.length || 0}</div>
+                    <div className="text-xs text-slate-500 uppercase font-semibold">Total Images</div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {galleryRecord.imageUrls && galleryRecord.imageUrls.length > 0 && (
+                      <button onClick={handleDownloadAll} disabled={isDownloadingZip} className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 transition disabled:opacity-50">
+                        {isDownloadingZip ? 'Zipping...' : 'Download All'}
+                      </button>
+                    )}
+                    <button onClick={() => setGalleryRecord(null)} className="bg-slate-200 text-slate-700 font-bold px-5 py-2.5 rounded-lg hover:bg-slate-300 transition">
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gallery Body */}
+              <div className="flex-grow p-4 sm:p-6 overflow-y-auto">
+                {galleryRecord.imageUrls && galleryRecord.imageUrls.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {galleryRecord.imageUrls.map((url, index) => (
+                      <div key={index} className="group relative aspect-square bg-slate-200 rounded-lg overflow-hidden shadow-sm border border-slate-300">
+                        <img src={url} alt={`Patient Image ${index + 1}`} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                          <button onClick={() => setFullscreenImage(url)} className="bg-white/80 p-2 rounded-full hover:bg-white" title="View Fullscreen"><span className="text-xl">👁️</span></button>
+                          <a href={url} download target="_blank" rel="noopener noreferrer" className="bg-white/80 p-2 rounded-full hover:bg-white" title="Download Image"><span className="text-xl">📥</span></a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-xl font-semibold text-slate-500">No Images Uploaded</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fullscreen Image Viewer */}
+        {fullscreenImage && (
+          <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 cursor-pointer" onClick={() => setFullscreenImage(null)}>
+            <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full object-contain" />
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans selection:bg-blue-200">

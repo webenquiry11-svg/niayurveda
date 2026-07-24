@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     // Secure this endpoint: Only logged in admins can view records
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('admin_token')?.value;
 
     if (!token) {

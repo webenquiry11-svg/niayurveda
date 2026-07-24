@@ -350,7 +350,6 @@ export default function AdminPage() {
   const [hasAdmin, setHasAdmin] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -420,27 +419,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleVerifyEmail = async () => {
-    setIsVerifying(true);
-    const loadingToast = toast.loading('Testing SMTP connection...');
-    try {
-      const res = await fetch('/api/admin/verify-email', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message, { id: loadingToast, duration: 4000 });
-      } else {
-        toast.error(`Verification failed: ${data.error || 'Unknown error'}`, {
-          id: loadingToast,
-          duration: 6000,
-        });
-      }
-    } catch (error) {
-      toast.error('An error occurred while testing the connection.', { id: loadingToast });
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
   const handleLogout = async () => {
     await fetch('/api/admin/check', { method: 'DELETE' });
     setIsAuthenticated(false);
@@ -471,9 +449,6 @@ export default function AdminPage() {
             </div>
             <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
               {isSubmitting ? 'Sending...' : 'Send Setup Link'}
-            </button>
-            <button type="button" onClick={handleVerifyEmail} disabled={isVerifying} className="w-full mt-3 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl shadow-sm hover:bg-slate-300 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
-              {isVerifying ? 'Testing...' : 'Test Email Connection'}
             </button>
           </form>
         ) : (

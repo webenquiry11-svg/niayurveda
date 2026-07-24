@@ -9,10 +9,8 @@ export const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_APP_PASSWORD, 
   },
-  // This is the most critical setting. It forces Nodemailer to use IPv4 only.
-  dns: {
-    family: 4,
-  },
+  // This is the correct way to force IPv4. 'family' is a top-level Node.js networking option.
+  family: 4,
   // Explicitly require TLSv1.2 or higher
   tls: {
     minVersion: 'TLSv1.2',

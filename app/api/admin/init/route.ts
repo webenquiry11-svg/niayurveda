@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '../../../lib/db';
 import Admin from '../../../models/Admin';
-import { sendMail } from '../../../lib/mailer';
+import { sendMail, transporter } from '../../../lib/mailer';
 import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
@@ -29,19 +29,29 @@ export async function POST(req: NextRequest) {
     await Admin.create({ email, otp: token, otpExpires });
   }
 
-  const setupLink = `${process.env.NEXT_PUBLIC_BASE_URL}/Admin/setup?email=${encodeURIComponent(email)}&token=${token}`;
+  const setupLink = `${process.env.NEXT_PUBLIC_APP_URL}/Admin/setup?email=${encodeURIComponent(email)}&token=${token}`;
 
   try {
+    // 1. First, verify the SMTP connection to diagnose connection issues.
+    await transporter.verify();
+    console.log("SMTP Connection Verified Successfully.");
+
+    // 2. If verification is successful, proceed to send the email.
     await sendMail(
       email,
       'Admin Setup Link',
       `Click the link to set up your admin account: ${setupLink}`,
       `<p>Click the link to set up your admin account: <a href="${setupLink}">${setupLink}</a></p>`
     );
+    console.log("Admin setup email sent successfully.");
 
     return NextResponse.json({ message: 'Setup email sent' });
-  } catch (error) {
-    console.error('Email send error:', error);
-    return NextResponse.json({ message: 'Failed to send email' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Email process failed:', error);
+    const errorMessage =
+      error.code === 'ETIMEDOUT'
+        ? 'Connection to email server timed out. This may be due to a firewall on the hosting provider. Please check your Render service plan.'
+        : `Failed to send email. Error: ${error.message}`;
+    return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
 }

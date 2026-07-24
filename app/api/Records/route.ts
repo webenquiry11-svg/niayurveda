@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 
       await Promise.all(imagePromises);
 
-      const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+      const zipContent = await zip.generateAsync({ type: 'blob' });
       const patientName = record.basicInfo?.name?.replace(/\s+/g, '_') || 'Patient';
 
       return new NextResponse(zipContent, {

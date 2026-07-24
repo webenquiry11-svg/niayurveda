@@ -117,9 +117,10 @@ const PatientRecordSchema = new mongoose.Schema({
     texture: String,
     movement: String,
     associatedSymptoms: [String],
-    imageUrl: String
+    // imageUrl is deprecated in favor of the top-level imageUrls array
   },
   diagnosis: { type: String, trim: true },
+  imageUrls: { type: [String], default: [] }, // New field for multiple image uploads
 }, { timestamps: true });
 
 export default mongoose.models.PatientRecord || mongoose.model('PatientRecord', PatientRecordSchema);

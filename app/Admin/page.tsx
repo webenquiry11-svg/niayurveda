@@ -115,7 +115,6 @@ interface PatientRecord {
   jivhaPariksha?: {
     color?: string;
     coating?: string;
-    // Property 'diagnosisImageUrl' does not exist on type 'PatientRecord'.
     coatingTypeColor?: string;
     odor?: string;
     shape?: string;
@@ -123,12 +122,11 @@ interface PatientRecord {
     texture?: string;
     movement?: string;
     associatedSymptoms?: string[];
-    imageUrl?: string;
   };
-  diagnosisImageUrl?: string;
   diagnosis?: string;
   createdAt: string;
   updatedAt: string;
+  imageUrls?: string[];
 }
 
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
@@ -136,6 +134,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [galleryRecord, setGalleryRecord] = useState<PatientRecord | null>(null);
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -323,7 +324,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         { header: 'Tongue Texture', key: 'jivhaPariksha.texture', width: 20, type: 'string' },
         { header: 'Tongue Movement', key: 'jivhaPariksha.movement', width: 20, type: 'string' },
         { header: 'Jivha Assoc. Symptoms', key: 'jivhaPariksha.associatedSymptoms', width: 40, type: 'array' },
-        { header: 'Jivha Image URL', key: 'jivhaPariksha.imageUrl', width: 50, type: 'string' },
+        { header: 'Images', key: 'imageUrls', width: 20, type: 'string' },
         { header: 'Diagnosis', key: 'diagnosis', width: 50, type: 'string' },
 
         // Timestamps
@@ -337,7 +338,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       const exportData = records.map(record => {
         const row: { [key: string]: any } = {};
         allReportFields.forEach(field => {
-          row[field.header] = getNestedValue(record, field.key, field.type);
+          // Special handling for the new 'Images' column
+          if (field.key === 'imageUrls') {
+            const count = Array.isArray(record.imageUrls) ? record.imageUrls.length : 0;
+            row[field.header] = count > 0 ? `${count} Image(s)` : 'No Images';
+          } else {
+            row[field.header] = getNestedValue(record, field.key, field.type);
+          }
         });
         return row;
       });
@@ -495,8 +502,41 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     }
   };
 
+  const handleDownloadAll = async () => {
+    if (!galleryRecord?._id || !galleryRecord.imageUrls || galleryRecord.imageUrls.length === 0) return;
+    setIsDownloadingZip(true);
+    const loadingToast = toast.loading('Preparing ZIP file for download...');
+
+    try {
+      // Re-use the existing API route with a special action parameter
+      const res = await fetch(`/api/Records?action=download_zip&id=${galleryRecord._id}`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const patientName = galleryRecord.basicInfo?.name?.replace(/\s+/g, '_') || 'Patient';
+        a.download = `${patientName}_Images.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('Download started!', { id: loadingToast });
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create ZIP file.');
+      }
+    } catch (error: any) {
+      toast.error(error.message, { id: loadingToast });
+    } finally {
+      setIsDownloadingZip(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2 sm:p-4 md:p-8 font-sans">
+    <>
+      {/* Main Dashboard */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2 sm:p-4 md:p-8 font-sans">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
@@ -611,6 +651,11 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                           >
                             {expandedId === record._id ? 'Hide' : 'View'}
                           </button>
+                          {record.imageUrls && record.imageUrls.length > 0 && (
+                            <button onClick={() => setGalleryRecord(record)} className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors ml-2">
+                              Images
+                            </button>
+                          )}
                         </td>
                       </tr>
 
@@ -726,7 +771,63 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      {/* Image Gallery Modal */}
+      {galleryRecord && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-slate-100 rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+            {/* Gallery Header */}
+            <div className="flex-shrink-0 bg-white p-4 sm:p-6 rounded-t-2xl border-b border-slate-200">
+              <div className="flex flex-wrap justify-between items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">{galleryRecord.basicInfo?.name}</h2>
+                  <p className="text-xs text-slate-500 mt-1">Patient ID: {galleryRecord._id}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {galleryRecord.imageUrls && galleryRecord.imageUrls.length > 0 && (
+                    <button onClick={handleDownloadAll} disabled={isDownloadingZip} className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-lg shadow-sm hover:bg-blue-700 transition disabled:opacity-50">
+                      {isDownloadingZip ? 'Zipping...' : 'Download All'}
+                    </button>
+                  )}
+                  <button onClick={() => setGalleryRecord(null)} className="bg-slate-200 text-slate-700 font-bold px-5 py-2.5 rounded-lg hover:bg-slate-300 transition">
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Gallery Body */}
+            <div className="flex-grow p-4 sm:p-6 overflow-y-auto">
+              {galleryRecord.imageUrls && galleryRecord.imageUrls.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  {galleryRecord.imageUrls.map((url, index) => (
+                    <div key={index} className="group relative aspect-square bg-slate-200 rounded-lg overflow-hidden shadow-sm border border-slate-300">
+                      <img src={url} alt={`Patient Image ${index + 1}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                        <button onClick={() => setFullscreenImage(url)} className="bg-white/80 p-2 rounded-full hover:bg-white" title="View Fullscreen"><span className="text-xl">👁️</span></button>
+                        <a href={url} download target="_blank" rel="noopener noreferrer" className="bg-white/80 p-2 rounded-full hover:bg-white" title="Download Image"><span className="text-xl">📥</span></a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-xl font-semibold text-slate-500">No Images Uploaded</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Image Viewer */}
+      {fullscreenImage && (
+        <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 cursor-pointer" onClick={() => setFullscreenImage(null)}>
+          <img src={fullscreenImage} alt="Fullscreen" className="max-w-full max-h-full object-contain" />
+        </div>
+      )}
+    </>
   );
 }
 

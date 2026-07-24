@@ -9,8 +9,9 @@ const initialFormState = {
   physicalExamination: { generalAppearance: '', built: '', weight: '', height: '', pallor: '', icterus: '', cyanosis: '', clubbing: '', lymphadenopathy: '', oedema: '', oedemaType: '', oedemaLocation: '', thyroidGland: '', vitals: { bp: '', pulseRate: '', respiratoryRate: '', temp: '' } },
   dashavidhaParikshana: { prakritiSharirik: '', prakritiMansika: '', vikritiDosha: '', saara: '', samahanana: '', pramana: '', satva: '', satmya: '', abhyavaharanaShakti: '', jaranaShakti: '', vyayamaShakti: '' },
   ashtavidhaPariksha: { nadi: '', mala: { matra: '', varna: '', gandha: '', pravritti: '', prakriti: '' }, jihwa: '', shabda: '', sparsha: '', drika: '', akriti: '', mutra: { matra: '', gandha: '', varna: '', pravritt: '' } },
-  jivhaPariksha: { color: '', coating: '', coatingTypeColor: '', odor: '', shape: '', moisture: '', texture: '', movement: '', associatedSymptoms: [], imageUrl: '' },
+  jivhaPariksha: { color: '', coating: '', coatingTypeColor: '', odor: '', shape: '', moisture: '', texture: '', movement: '', associatedSymptoms: [] },
   diagnosis: '',
+  imageUrls: [], // New state for multiple image URLs
 };
 
 export default function ClinicalForm() {
@@ -119,33 +120,43 @@ export default function ClinicalForm() {
   };
 
   // Cloudinary Direct Upload Handler
-  const handleImageUpload = async (e, section, field, subField = null) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    const loadingToast = toast.loading('Uploading image...');
-    const formData = new FormData();
-    formData.append('file', file);
+    const loadingToast = toast.loading(`Uploading ${files.length} image(s)...`);
+    const uploadedUrls = [];
 
-    try {
-      // Send the file to our secure Next.js backend API instead of directly to Cloudinary
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      const data = await response.json();
-      if (response.ok && data.secure_url) {
-        handleNestedChange(section, field, data.secure_url, subField);
-        toast.success('Image uploaded successfully!', { id: loadingToast });
-      } else {
-        throw new Error(data.error || 'Upload failed');
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const data = await response.json();
+        if (response.ok && data.secure_url) {
+          uploadedUrls.push(data.secure_url);
+        } else {
+          throw new Error(`Upload failed for ${file.name}`);
+        }
+      } catch (error) {
+        toast.error(`Failed to upload ${file.name}.`, { id: loadingToast });
+        e.target.value = null; // Reset input
+        return; // Stop on first failure
       }
-    } catch (error) {
-      toast.error('Failed to upload image.', { id: loadingToast });
-    } finally {
-      e.target.value = null; // Reset input to allow selecting the same file again if removed
     }
+
+    setFormData(prev => ({
+      ...prev,
+      imageUrls: [...prev.imageUrls, ...uploadedUrls]
+    }));
+
+    toast.success(`${files.length} image(s) uploaded successfully!`, { id: loadingToast });
+    e.target.value = null; // Reset input
   };
 
   const handleSubmit = async (e) => {
@@ -180,7 +191,8 @@ export default function ClinicalForm() {
       },
       jivhaPariksha: {
         ...formData.jivhaPariksha,
-        associatedSymptoms: [...(formData.jivhaPariksha.associatedSymptoms || []), otherSymptomsText].filter(Boolean)
+        associatedSymptoms: [...(formData.jivhaPariksha.associatedSymptoms || []), otherSymptomsText].filter(Boolean),
+        imageUrl: undefined, // Ensure old single imageUrl is not sent
       }
     };
 
@@ -294,6 +306,24 @@ export default function ClinicalForm() {
           </button>
         </div>
       )}
+    </div>
+  );
+
+  const renderMultiImageUpload = (label) => (
+    <div className="flex flex-col gap-1.5 md:col-span-2">
+      <label className="text-sm font-bold text-slate-700 tracking-wide">{label}</label>
+      <input
+        type="file"
+        accept="image/*"
+        multiple // Allow multiple files
+        onChange={handleImageUpload}
+        className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+      />
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {formData.imageUrls.map((url, index) => (
+          <img key={index} src={url} alt={`Upload Preview ${index + 1}`} className="h-24 w-24 rounded-lg object-cover shadow-sm border border-slate-200" />
+        ))}
+      </div>
     </div>
   );
 
@@ -570,13 +600,13 @@ export default function ClinicalForm() {
                       <input type="text" value={otherSymptomsText} onChange={(e) => setOtherSymptomsText(e.target.value)} className="mt-2 w-full p-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm" placeholder="Others (specify)" />
                     </div>
                   </div>
-                  {renderImageUpload('Photographic Presentation (Upload Image)', 'jivhaPariksha', 'imageUrl')}
                 </div>
                 
                 {/* Final Diagnosis */}
                 <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
                   <h3 className="text-lg font-bold text-slate-900 mb-4">Final Diagnosis</h3>
                   {renderTextarea('Clinical Diagnosis', null, 'diagnosis', 'Enter detailed diagnosis and clinical remarks...')}
+                  {renderMultiImageUpload('Attach Patient Images / Reports')}
                 </div>
               </div>
             )}

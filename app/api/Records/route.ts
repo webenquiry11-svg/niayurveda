@@ -3,6 +3,7 @@ import PatientRecord from '../../models/PateintRecord';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+import JSZip from 'jszip';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,21 +19,63 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    await dbConnect();
-
     // Secure this endpoint: Only logged in admins can view records
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const token = cookieStore.get('admin_token')?.value;
 
     if (!token) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
-
-    // Verify token
     jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_change_in_production');
+    
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const action = searchParams.get('action');
+    const id = searchParams.get('id');
 
-    const records = await PatientRecord.find({}).sort({ createdAt: -1 });
-    return NextResponse.json({ success: true, data: records }, { status: 200 });
+    // Handle ZIP download action
+    if (action === 'download_zip' && id) {
+      const record = await PatientRecord.findById(id);
+      if (!record || !record.imageUrls || record.imageUrls.length === 0) {
+        return NextResponse.json({ message: 'No images found for this patient' }, { status: 404 });
+      }
+
+      const zip = new JSZip();
+      const imagePromises = record.imageUrls.map(async (url: string, index: number) => {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Failed to fetch image: ${url}`);
+          const arrayBuffer = await response.arrayBuffer();
+          const fileExtension = url.split('.').pop()?.split('?')[0] || 'jpg';
+          zip.file(`image_${index + 1}.${fileExtension}`, arrayBuffer);
+        } catch (fetchError) {
+          console.error(`Could not fetch image from ${url}:`, fetchError);
+          zip.file(`error_fetching_image_${index + 1}.txt`, `Failed to download image from: ${url}`);
+        }
+      });
+
+      await Promise.all(imagePromises);
+
+      const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+      const patientName = record.basicInfo?.name?.replace(/\s+/g, '_') || 'Patient';
+
+      return new NextResponse(zipContent, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': `attachment; filename="${patientName}_Images.zip"`,
+        },
+      });
+    }
+
+    // Default action: fetch all records for the dashboard
+    try {
+      const records = await PatientRecord.find({}).sort({ createdAt: -1 });
+      return NextResponse.json({ success: true, data: records }, { status: 200 });
+    } catch (error) {
+      return NextResponse.json({ success: false, message: 'Server error while fetching records' }, { status: 500 });
+    }
+
   } catch (error) {
     return NextResponse.json({ success: false, message: 'Unauthorized or Server Error' }, { status: 500 });
   }

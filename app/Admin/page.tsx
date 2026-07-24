@@ -349,6 +349,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [hasAdmin, setHasAdmin] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -372,6 +373,7 @@ export default function AdminPage() {
 
   const handleInit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const loadingToast = toast.loading('Sending setup link...');
     try {
       const res = await fetch('/api/admin/init', {
@@ -388,11 +390,14 @@ export default function AdminPage() {
       }
     } catch (error) {
       toast.error('An error occurred.', { id: loadingToast });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const loadingToast = toast.loading('Logging in...');
     try {
       const res = await fetch('/api/admin/login', {
@@ -409,6 +414,8 @@ export default function AdminPage() {
       }
     } catch (error) {
       toast.error('An error occurred.', { id: loadingToast });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -440,8 +447,8 @@ export default function AdminPage() {
               <label className="text-sm font-bold text-slate-700">Master Email</label>
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@hospital.com" className="w-full p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400 bg-white" />
             </div>
-            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 transition-all">
-              Send Setup Link
+            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+              {isSubmitting ? 'Sending...' : 'Send Setup Link'}
             </button>
           </form>
         ) : (
@@ -454,8 +461,8 @@ export default function AdminPage() {
               <label className="text-sm font-bold text-slate-700">Password</label>
               <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400 bg-white" />
             </div>
-            <button type="submit" className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-slate-800 transition-all">
-              Login to Dashboard
+            <button type="submit" disabled={isSubmitting} className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+              {isSubmitting ? 'Logging In...' : 'Login to Dashboard'}
             </button>
           </form>
         )}

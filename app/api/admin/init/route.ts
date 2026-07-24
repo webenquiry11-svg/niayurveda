@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       admin.otpExpires = undefined;
       await admin.save();
 
-      const token = jwt.sign({ id: admin._id, email: admin.email, username: admin.username }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+      const token = jwt.sign({ id: admin._id, email: admin.email, username: admin.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
       // In Route Handlers, cookies must be set on the response object.
       const response = NextResponse.json({ success: true, message: 'Admin account created and logged in.' });

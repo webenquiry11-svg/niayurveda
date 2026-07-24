@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/router';
 import { useState, useEffect, Fragment } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 
@@ -138,8 +138,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [galleryRecord, setGalleryRecord] = useState<PatientRecord | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
-  const { push, replace } = useRouter(); // For URL manipulation
-
+  
+  // This component is rendered when isAuthenticated is true, so we can safely assume it.
+  // The parent AdminPage handles the auth check.
   useEffect(() => {
     const fetchRecords = async () => {
       try {
@@ -153,31 +154,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       }
     };
     fetchRecords();
-
-    // Handle auto-opening gallery from URL query parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const viewPatientId = urlParams.get('viewPatient');
-
-    if (viewPatientId && isAuthenticated) {
-      const openGallery = async () => {
-        try {
-          const res = await fetch(`/api/Records?id=${viewPatientId}`);
-          const data = await res.json();
-          if (data.success && data.data) {
-            setGalleryRecord(data.data);
-            // Remove the query parameter from the URL after opening the gallery
-            replace('/Admin', undefined, { shallow: true });
-          } else {
-            toast.error(data.message || 'Failed to load patient for gallery.');
-          }
-        } catch (error) {
-          toast.error('Error loading patient for gallery.');
-        }
-      };
-      openGallery();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]); // Only re-run if authentication status changes
   }, []);
 
   const filteredRecords = records.filter(record =>
@@ -371,8 +347,9 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             const hasImages = Array.isArray(record.imageUrls) && record.imageUrls.length > 0;
             if (hasImages) {
               // This creates a clickable hyperlink in the Excel cell.
-              const galleryUrl = `${process.env.NEXT_PUBLIC_APP_URL}/Admin?viewPatient=${record._id}`;
-              row[field.header] = { t: 's', v: 'View Images', l: { Target: galleryUrl, Tooltip: `View images for ${record.basicInfo?.name}` } };
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+              const galleryUrl = `${appUrl}/Admin?viewPatient=${record._id}`;
+              row[field.header] = { t: 's', v: 'View Images', l: { Target: galleryUrl, Tooltip: `View images for ${record.basicInfo?.name || 'patient'}` } };
             } else {
               row[field.header] = 'No Images';
             }
@@ -864,14 +841,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 }
 
 export default function AdminPage() {
-  const { useSearchParams, useRouter } = require('next/navigation'); // Import here for client component
   const [loading, setLoading] = useState(true);
   const [hasAdmin, setHasAdmin] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [setupStep, setSetupStep] = useState(1); // 1 for email, 2 for OTP/credentials
   
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(''); // Declare email state here
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -893,30 +869,7 @@ export default function AdminPage() {
       }
     };
     checkStatus();
-
-    // Handle auto-opening gallery from URL query parameter on initial load
-    const viewPatientId = searchParams.get('viewPatient');
-    if (viewPatientId && isAuthenticated) {
-      const openGallery = async () => {
-        try {
-          const res = await fetch(`/api/Records?id=${viewPatientId}`);
-          const data = await res.json();
-          if (data.success && data.data) {
-            // This will be handled by the AdminDashboard component's useEffect
-            // We just need to ensure isAuthenticated is true for it to trigger
-            // and then the AdminDashboard will set the galleryRecord.
-            // Clear the query param to prevent re-triggering on subsequent renders
-            router.replace('/Admin', undefined, { shallow: true });
-          } else {
-            toast.error(data.message || 'Failed to load patient for gallery.');
-          }
-        } catch (error) {
-          toast.error('Error loading patient for gallery.');
-        }
-      };
-      openGallery();
-    }
-  }, [isAuthenticated, searchParams, router]); // Depend on isAuthenticated, searchParams, router
+  }, []);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();

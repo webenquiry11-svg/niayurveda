@@ -34,8 +34,9 @@ export async function GET(req: NextRequest) {
     }
     try {
       jwt.verify(token, process.env.JWT_SECRET);
-    } catch (jwtError: any) {
-      return NextResponse.json({ success: false, message: `Unauthorized: Invalid token. ${jwtError.message}` }, { status: 401 });
+    } catch (jwtError) {
+      console.error("JWT Verification Error:", jwtError);
+      return NextResponse.json({ success: false, message: 'Unauthorized: Invalid or expired token.' }, { status: 401 });
     }
     
     await dbConnect();

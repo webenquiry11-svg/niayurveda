@@ -324,12 +324,13 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         { header: 'Tongue Texture', key: 'jivhaPariksha.texture', width: 20, type: 'string' },
         { header: 'Tongue Movement', key: 'jivhaPariksha.movement', width: 20, type: 'string' },
         { header: 'Jivha Assoc. Symptoms', key: 'jivhaPariksha.associatedSymptoms', width: 40, type: 'array' },
-        { header: 'Images', key: 'imageUrls', width: 20, type: 'string' },
         { header: 'Diagnosis', key: 'diagnosis', width: 50, type: 'string' },
 
         // Timestamps
         { header: 'Created At', key: 'createdAt', width: 20, type: 'date' },
         { header: 'Updated At', key: 'updatedAt', width: 20, type: 'date' },
+        // This is now the last column as per requirements
+        { header: 'Images', key: 'imageUrls', width: 20, type: 'link' },
       ];
 
       // --- 2. FLATTEN RECORDS & APPLY DATA FORMATTING ---
@@ -339,9 +340,14 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         const row: { [key: string]: any } = {};
         allReportFields.forEach(field => {
           // Special handling for the new 'Images' column
-          if (field.key === 'imageUrls') {
-            const count = Array.isArray(record.imageUrls) ? record.imageUrls.length : 0;
-            row[field.header] = count > 0 ? `${count} Image(s)` : 'No Images';
+          if (field.type === 'link' && field.key === 'imageUrls') {
+            const hasImages = Array.isArray(record.imageUrls) && record.imageUrls.length > 0;
+            if (hasImages) {
+              // This creates a clickable hyperlink in the Excel cell.
+              row[field.header] = { t: 's', v: 'View Images', l: { Target: `#${record._id}`, Tooltip: `View images for ${record.basicInfo?.name}` } };
+            } else {
+              row[field.header] = 'No Images';
+            }
           } else {
             row[field.header] = getNestedValue(record, field.key, field.type);
           }
@@ -777,6 +783,10 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 <div>
                   <h2 className="text-2xl font-bold text-slate-800">{galleryRecord.basicInfo?.name}</h2>
                   <p className="text-xs text-slate-500 mt-1">Patient ID: {galleryRecord._id}</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-600">{galleryRecord.imageUrls?.length || 0}</div>
+                  <div className="text-xs text-slate-500 uppercase font-semibold">Total Images</div>
                 </div>
                 <div className="flex items-center gap-4">
                   {galleryRecord.imageUrls && galleryRecord.imageUrls.length > 0 && (

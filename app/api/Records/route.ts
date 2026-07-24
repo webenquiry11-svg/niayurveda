@@ -18,15 +18,21 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  // Runtime check for critical environment variables
+  if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is not defined.');
+    return NextResponse.json({ message: 'Server configuration error: Missing JWT secret.' }, { status: 500 });
+  }
+
   try {
     // Secure this endpoint: Only logged in admins can view records
     const cookieStore = await cookies();
     const token = cookieStore.get('admin_token')?.value;
 
     if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, message: 'Unauthorized: No token provided.' }, { status: 401 });
     }
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_change_in_production');
+    jwt.verify(token, process.env.JWT_SECRET);
     
     await dbConnect();
     const { searchParams } = new URL(req.url);
@@ -71,12 +77,12 @@ export async function GET(req: NextRequest) {
     // Default action: fetch all records for the dashboard
     try {
       const records = await PatientRecord.find({}).sort({ createdAt: -1 });
-      return NextResponse.json({ success: true, data: records }, { status: 200 });
+      return NextResponse.json({ success: true, data: records });
     } catch (error) {
       return NextResponse.json({ success: false, message: 'Server error while fetching records' }, { status: 500 });
     }
 
-  } catch (error) {
-    return NextResponse.json({ success: false, message: 'Unauthorized or Server Error' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message || 'Unauthorized or Server Error' }, { status: 500 });
   }
 }

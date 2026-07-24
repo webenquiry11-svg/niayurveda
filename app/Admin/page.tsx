@@ -350,10 +350,12 @@ export default function AdminPage() {
   const [hasAdmin, setHasAdmin] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [setupStep, setSetupStep] = useState(1); // 1 for email, 2 for OTP/credentials
   
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -371,22 +373,46 @@ export default function AdminPage() {
     checkStatus();
   }, []);
 
-  const handleInit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    const loadingToast = toast.loading('Sending setup link...');
+    const loadingToast = toast.loading('Sending OTP...');
     try {
       const res = await fetch('/api/admin/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ action: 'send_otp', email }),
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success('Setup email sent! Please check your inbox.', { id: loadingToast });
-        setEmail('');
+        toast.success('OTP sent! Please check your inbox.', { id: loadingToast });
+        setSetupStep(2);
       } else {
-        toast.error(data.message || 'Failed to send email.', { id: loadingToast });
+        toast.error(data.message || 'Failed to send OTP.', { id: loadingToast });
+      }
+    } catch (error) {
+      toast.error('An error occurred.', { id: loadingToast });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyAndSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const loadingToast = toast.loading('Verifying and setting up account...');
+    try {
+      const res = await fetch('/api/admin/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify_and_setup', email, otp, username, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Setup complete! Logged in.', { id: loadingToast });
+        setIsAuthenticated(true); // This will trigger re-render to show dashboard
+      } else {
+        toast.error(data.message || 'Setup failed.', { id: loadingToast });
       }
     } catch (error) {
       toast.error('An error occurred.', { id: loadingToast });
@@ -437,20 +463,40 @@ export default function AdminPage() {
             {hasAdmin ? 'Admin Login' : 'Initialize Admin'}
           </h1>
           <p className="text-sm text-slate-500 text-center mt-2">
-            {hasAdmin ? 'Enter your credentials to access the dashboard' : 'Enter your email to receive a secure setup link'}
+            {hasAdmin ? 'Enter your credentials to access the dashboard' : 'Enter your email to receive a secure one-time code'}
           </p>
         </div>
 
         {!hasAdmin ? (
-          <form onSubmit={handleInit} className="space-y-6">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-slate-700">Master Email</label>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@hospital.com" className="w-full p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400 bg-white" />
-            </div>
-            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
-              {isSubmitting ? 'Sending...' : 'Send Setup Link'}
-            </button>
-          </form>
+          setupStep === 1 ? (
+            <form onSubmit={handleSendOtp} className="space-y-6">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-700">Master Email</label>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@hospital.com" className="w-full p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400 bg-white" />
+              </div>
+              <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                {isSubmitting ? 'Sending...' : 'Send Code'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyAndSetup} className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-700">6-Digit Code</label>
+                <input type="text" inputMode="numeric" maxLength={6} required value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" className="w-full p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400 bg-white" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-700">Create Username</label>
+                <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="admin_user" className="w-full p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400 bg-white" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-slate-700">Create Password</label>
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400 bg-white" />
+              </div>
+              <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                {isSubmitting ? 'Verifying...' : 'Complete Setup'}
+              </button>
+            </form>
+          )
         ) : (
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="flex flex-col gap-1.5">

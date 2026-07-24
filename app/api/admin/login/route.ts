@@ -5,6 +5,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export async function POST(req: NextRequest) {
+  // Runtime check for critical environment variables
+  if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is not defined.');
+    return NextResponse.json({ message: 'Server configuration error: Missing JWT secret.' }, { status: 500 });
+  }
+
   await dbConnect();
 
   const { username, password } = await req.json();
@@ -28,7 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
   }
 
-  const token = jwt.sign({ id: admin._id, username: admin.username }, process.env.JWT_SECRET!, { expiresIn: '7d' });
+  const token = jwt.sign({ id: admin._id, username: admin.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
   const response = NextResponse.json({ message: 'Login successful' });
   response.cookies.set('admin_token', token, {

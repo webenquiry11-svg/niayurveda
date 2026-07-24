@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -840,7 +840,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   );
 }
 
-export default function AdminPage() {
+function AdminPageContent() {
   const [loading, setLoading] = useState(true);
   const [hasAdmin, setHasAdmin] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1012,5 +1012,15 @@ export default function AdminPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    // Wrap the component that uses useSearchParams in a Suspense boundary
+    // This resolves the build error by allowing Next.js to statically render a fallback.
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50 font-bold text-slate-500">Loading Page...</div>}>
+      <AdminPageContent />
+    </Suspense>
   );
 }

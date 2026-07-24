@@ -32,7 +32,11 @@ export async function GET(req: NextRequest) {
     if (!token) {
       return NextResponse.json({ success: false, message: 'Unauthorized: No token provided.' }, { status: 401 });
     }
-    jwt.verify(token, process.env.JWT_SECRET);
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtError: any) {
+      return NextResponse.json({ success: false, message: `Unauthorized: Invalid token. ${jwtError.message}` }, { status: 401 });
+    }
     
     await dbConnect();
     const { searchParams } = new URL(req.url);

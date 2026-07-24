@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
   }
 
   const token = jwt.sign({ id: admin._id, username: admin.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ id: admin._id, username: admin.username }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
 
   const response = NextResponse.json({ message: 'Login successful' });
   response.cookies.set('admin_token', token, {

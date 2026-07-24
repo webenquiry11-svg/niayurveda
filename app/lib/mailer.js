@@ -1,21 +1,22 @@
 import nodemailer from 'nodemailer';
 
 export const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
+  // Using explicit settings for maximum compatibility on hosting platforms.
+  host: 'smtp.gmail.com',
   port: 587,
-  secure: false, // Use STARTTLS
+  secure: false, // Use STARTTLS. It's crucial this is false for port 587.
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_APP_PASSWORD, 
   },
-  // Force IPv4 to resolve a common issue on hosting platforms like Render.
-  // The server fails to connect to smtp.gmail.com over IPv6.
+  // This is the most critical setting. It forces Nodemailer to use IPv4 only.
   dns: {
     family: 4,
   },
-  // Add these for better debugging on the server
-  logger: true,
-  debug: true,
+  // Explicitly require TLSv1.2 or higher
+  tls: {
+    minVersion: 'TLSv1.2',
+  }
 });
 
 export const sendMail = async (to, subject, text, html) => {
